@@ -1,0 +1,9 @@
+# Design: Ban Guard
+
+- **Detection** (`daemon/src/service/ban_guard_service.ts`): console chunks are reassembled into lines per instance; ANSI and `§` colour codes removed; the message is the text after the first `]: ` (log prefix). Player chat (`<name> …`, `[Not Secure]`, `[CHAT]`) is ignored. Targets must be valid player names (`[.*]?[A-Za-z0-9_]{1,20}`) or IPv4/IPv6 addresses, so nothing else can reach the `pardon` command.
+- **Authorization**: `ban_guard/allow { instanceUuid, target }` (panel only) stores `instance:target` (case-insensitive) for 2 minutes; the next matching ban consumes it.
+- **Revert**: `pardon <name>` / `pardon-ip <ip>` through the instance's command preset, plus a localized console notice. Same target deduplicated for 10 s (console feedback + operator broadcast); at most 10 pardons per instance per minute.
+- **Audit**: events kept in memory (1 h, 200 max) and listed by `ban_guard/events { since }`; the panel polls every available daemon every 20 s (5 s overlap, seen ids) and logs `instance_player_unban_auto { player, target_kind, console_line }`.
+- Routes are named `ban_guard/*` to stay outside the `instance/*` existence gate; `instance/unexpected_stops` gets an explicit exemption in that gate.
+- **Ban lists (any Java server software)**: every 15 s, for each running `minecraft/java*` instance (and `universal` instances that have the files), the daemon reads `banned-players.json` / `banned-ips.json` (no symlinks, ≤ 2 MB). The first read is the baseline (existing bans kept); a new entry that the panel did not authorize is reverted like a console ban, whatever message the server or plugin printed. Console and list paths share the authorization and the 10 s deduplication; an entry that disappears is forgotten so a later ban is seen again.
+- Console formats also include `System chat: …` (Forge/NeoForge 1.19+) and `Banned player X` (1.12 and older).
