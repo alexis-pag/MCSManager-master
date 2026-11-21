@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,7 +30,7 @@ jobs:
         run: wget --input-file=lib-urls.txt --directory-prefix=production-code/daemon/lib/
 
       - name: Create update packages and manifest
-        run: node scripts/build-release-update-packages.mjs --tag "${GITHUB_REF_NAME}"
+        run: node scripts/build-release-update-packages.mjs --tag "${GITHUB_REF_NAME}" --repo "alexis-pag/MCSManager-master"
         env:
           RELEASE_BODY: ${{ github.event.release.body }}
 
