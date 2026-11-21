@@ -3,6 +3,12 @@ name: Release Build
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -30,7 +36,9 @@ jobs:
         run: wget --input-file=lib-urls.txt --directory-prefix=production-code/daemon/lib/
 
       - name: Create update packages and manifest
-        run: node scripts/build-release-update-packages.mjs --tag "${GITHUB_REF_NAME}" --repo "alexis-pag/MCSManager-master"
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: node scripts/build-release-update-packages.mjs --tag "${RELEASE_TAG}" --repo "alexis-pag/MCSManager-master"
         env:
           RELEASE_BODY: ${{ github.event.release.body }}
 
@@ -72,6 +80,7 @@ jobs:
       - name: Upload assets to release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
             mcsmanager_windows_release.zip
             mcsmanager_windows_daemon_only_release.zip
